@@ -171,7 +171,7 @@ namespace detail
 	GLM_FUNC_QUALIFIER T dot(vecType<T, P> const & x, vecType<T, P> const & y)
 	{
 		GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559, "'dot' accepts only floating-point inputs");
-		return detail::compute_dot<vecType, T, P, detail::is_aligned<P>::value>::call(x, y);
+		return detail::compute_dot<vecType, T, P, detail::is_aligned<P>::value>::call(x, y);		// this is the original shape that I found the code in; it can't find call as a function, idk what to do
 	}
 
 	// cross

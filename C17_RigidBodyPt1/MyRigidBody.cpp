@@ -143,5 +143,6 @@ void MyRigidBody::AddToRenderList(void)
 }
 bool MyRigidBody::IsColliding(MyRigidBody* const other)
 {
+
 	return (glm::distance(GetCenterGlobal(), other->GetCenterGlobal()) < m_fRadius + other->m_fRadius);
 }

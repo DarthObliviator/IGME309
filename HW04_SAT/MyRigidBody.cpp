@@ -6,7 +6,83 @@ uint MyRigidBody::SAT(MyRigidBody* const a_pOther)
 	//TODO: Calculate the SAT algorithm I STRONGLY suggest you use the
 	//Real Time Collision detection algorithm for OBB here but feel free to
 	//implement your own solution.
-	return BTXs::eSATResults::SAT_NONE;
+
+	// The code cannot get to the code to run, so idk what's going on
+
+	matrix3 rotation;
+	matrix3 absRotation;
+
+
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+
+			rotation[i][j] = glm::dot(this->GetModelMatrix(), a_pOther->GetModelMatrix());
+		}
+	}
+	matrix3 ownMatrix = this->GetModelMatrix();
+	matrix4 otherMatrix = a_pOther->GetModelMatrix();
+
+	vector3 translate = this->GetCenterGlobal() - a_pOther->GetCenterGlobal();
+	translate = vector3(glm::dot(translate, ownMatrix[0]), glm::dot(translate, ownMatrix[2]), glm::dot(translate, ownMatrix[2]));			// why is this [0], [2], [2]; shouldn't it be [0] [1] [2]
+
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+
+			rotation[i][j] = glm::dot(ownMatrix[i][j], otherMatrix[i][j]);
+		}
+	}
+
+
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < 3; j++) {
+			absRotation[i][j] = glm::abs(rotation[i][j]) + DBL_EPSILON;
+		}
+	}
+
+	for (int i = 0; i < 3; i++) {
+		float ra = this->GetHalfWidth()[i];
+		float rb = a_pOther->GetHalfWidth()[0] * absRotation[i][0] + a_pOther->GetHalfWidth()[1] * absRotation[i][1] + a_pOther->GetHalfWidth()[2] * absRotation[i][2];
+		if (glm::abs(translate[i]) > ra + rb)
+			return 0;
+	}
+
+	for (int i = 0; i < 3; i++) {
+		float ra = this->GetHalfWidth()[0] * absRotation[0][1] + this->GetHalfWidth()[1] * absRotation[1][i] + this->GetHalfWidth()[2] * absRotation[2][i];
+		float rb = a_pOther->GetHalfWidth()[i];
+		if (glm::abs(translate[0]) * rotation[0][i] + translate[1] * rotation[2][i] > ra + rb) {
+			return 0;
+		}
+	}
+
+	float ra = this->GetHalfWidth()[1] * absRotation[2][0] + this->GetHalfWidth()[2] * absRotation[1][0];
+	float rb = a_pOther->GetHalfWidth()[1] * absRotation[0][2] + a_pOther->GetHalfWidth()[2] * absRotation[0][1];
+	if (glm::abs(translate[2] * rotation[1][0] - translate[1] * rotation[2][0]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[1] * absRotation[2][1] + this->GetHalfWidth()[2] * absRotation[1][1];
+	rb = a_pOther->GetHalfWidth()[0] * absRotation[0][1] + a_pOther->GetHalfWidth()[1] * absRotation[0][0];
+	if (glm::abs(translate[2] * rotation[1][0] - translate[1] * rotation[2][0]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[1] * absRotation[2][2] + this->GetHalfWidth()[2] * absRotation[1][2];
+	rb = a_pOther->GetHalfWidth()[0] * absRotation[0][1] + a_pOther->GetHalfWidth()[1] * absRotation[0][0];
+	if (glm::abs(translate[2] * rotation[1][2] - translate[1] * rotation[2][2]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[0] * absRotation[2][0] + this->GetHalfWidth()[2] * absRotation[0][0];
+	rb = a_pOther->GetHalfWidth()[1] * absRotation[1][2] + a_pOther->GetHalfWidth()[2] * absRotation[1][1];
+	if (glm::abs(translate[0] * rotation[2][0] - translate[2] * rotation[0][0]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[0] * absRotation[2][1] + this->GetHalfWidth()[2] * absRotation[0][1];
+	rb = a_pOther->GetHalfWidth()[0] * absRotation[1][2] + a_pOther->GetHalfWidth()[2] * absRotation[1][0];
+	if (glm::abs(translate[0] * rotation[2][1] - translate[2] * rotation[0][1]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[0] * absRotation[2][2] + this->GetHalfWidth()[2] * absRotation[0][2];
+	rb = a_pOther->GetHalfWidth()[0] * absRotation[1][1] + a_pOther->GetHalfWidth()[1] * absRotation[1][0];
+	if (glm::abs(translate[0] * rotation[2][2] - translate[2] * rotation[0][2]) > ra + rb) return 0;
+
+	ra = this->GetHalfWidth()[0] * absRotation[1][1] + this->GetHalfWidth()[1] * absRotation[0][1];
+	rb = a_pOther->GetHalfWidth()[0] * absRotation[2][2] + a_pOther->GetHalfWidth()[2] * absRotation[2][0];
+	if (glm::abs(translate[1] * rotation[0][2] - translate[0] * rotation[1][2]) > ra + rb) return 0;
+
+	return 1;
 }
 bool MyRigidBody::IsColliding(MyRigidBody* const a_pOther)
 {
