@@ -28,7 +28,7 @@ uint MyRigidBody::SAT(MyRigidBody* const a_pOther)
 	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < 3; j++) {
 
-			rotation[i][j] = glm::dot(ownMatrix[i][j], otherMatrix[i][j]);
+			rotation[i][j] = glm::dot(m_m4ToWorld[i], a_pOther->m_m4ToWorld[j]);
 		}
 	}
 
