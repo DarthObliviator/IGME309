@@ -25,9 +25,14 @@ Octant::Octant(uint a_nMaxLevel, uint a_nIdealEntityCount)
 	//of those children will have children of their own
 
 	//The following is a made-up size, you need to make sure it is measuring all the object boxes in the world
+
 	std::vector<vector3> lMinMax;
-	lMinMax.push_back(vector3(-50.0f));
-	lMinMax.push_back(vector3(25.0f));
+	for (int i = 0; i < m_pEntityMngr->GetEntityCount(); i++) {			// I don't know what is going on here
+		Entity* pEntity = m_pEntityMngr->GetEntity(0);
+		RigidBody* pRigidBody = pEntity->GetRigidBody();
+		lMinMax.push_back(pRigidBody->GetMaxGlobal());
+		lMinMax.push_back(pRigidBody->GetMinGlobal());
+	}
 	RigidBody pRigidBody = RigidBody(lMinMax);
 
 
@@ -48,16 +53,34 @@ bool Octant::IsColliding(uint a_uRBIndex)
 	//If the index given is larger than the number of elements in the bounding object there is no collision
 	//As the Octree will never rotate or scale this collision is as easy as an Axis Alligned Bounding Box
 	//Get all vectors in global space (the octant ones are already in Global)
-	return true; // for the sake of startup code
+	Entity* e = m_pEntityMngr->GetEntity(a_uRBIndex);
+	for (int i = 0; i < m_pEntityMngr->GetEntityCount(); i++) {	
+		if (i != a_uRBIndex) {
+			if (m_pEntityMngr->GetEntity()->SharesDimension(m_pEntityMngr->GetEntity(i))) {			// get whether the two Entities exist in the same space
+				if(e->GetModelMatrix())				// apply an AABB intersection test between the two objects
+				return true;
+			}
+		}
+	}
+
+	return false;
 }
 void Octant::Display(uint a_nIndex, vector3 a_v3Color)
 {
 	// Display the specified octant
+	m_pModelMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) *
+		glm::scale(vector3(m_fSize)), a_v3Color);
+
 }
 void Octant::Display(vector3 a_v3Color)
 {
 	//this is meant to be a recursive method, in starter code will only display the root
 	//even if other objects are created
+	if (!IsLeaf()) {
+		for (int i = 0; i < m_uChildren; i++) {
+			GetChild(i)->Display();
+		}
+	}
 	m_pModelMngr->AddWireCubeToRenderList(glm::translate(IDENTITY_M4, m_v3Center) *
 		glm::scale(vector3(m_fSize)), a_v3Color);
 }
@@ -68,14 +91,30 @@ void Octant::Subdivide(void)
 		return;
 
 	//If this node has been already subdivided return without changes
-	if (m_uChildren != 0)
+	if (m_uChildren != 0) {
+		for (int i = 0; i < m_uChildren; i++) {
+			GetChild(i)->Subdivide();
+		}
 		return;
+	}
 
 	//Subdivide the space and allocate 8 children
+	m_lChild[0] = new Octant(m_v3Center + vector3(m_fSize / 2, m_fSize / 2, m_fSize / 2), m_fSize / 2);	m_pChild[0]->m_uLevel++;
+	m_lChild[1] = new Octant(m_v3Center + vector3(-m_fSize / 2, m_fSize / 2, m_fSize / 2), m_fSize / 2); m_pChild[1]->m_uLevel++;
+	m_lChild[2] = new Octant(m_v3Center + vector3(-m_fSize / 2, -m_fSize / 2, m_fSize / 2), m_fSize / 2); m_pChild[2]->m_uLevel++;
+	m_lChild[3] = new Octant(m_v3Center + vector3(-m_fSize / 2, -m_fSize / 2, -m_fSize / 2), -m_fSize / 2); m_pChild[3]->m_uLevel++;
+	m_lChild[4] = new Octant(m_v3Center + vector3(m_fSize / 2, -m_fSize / 2, m_fSize / 2), m_fSize / 2); m_pChild[4]->m_uLevel++;
+	m_lChild[5] = new Octant(m_v3Center + vector3(m_fSize / 2, -m_fSize / 2, -m_fSize / 2), m_fSize / 2); m_pChild[5]->m_uLevel++;
+	m_lChild[6] = new Octant(m_v3Center + vector3(-m_fSize / 2, m_fSize / 2, -m_fSize / 2), m_fSize / 2); m_pChild[6]->m_uLevel++;
+	m_lChild[7] = new Octant(m_v3Center + vector3(m_fSize / 2, -m_fSize / 2, -m_fSize / 2), m_fSize / 2); m_pChild[7]->m_uLevel++;
+
+	m_uLevel++;
 }
 bool Octant::ContainsAtLeast(uint a_nEntities)
 {
 	//You need to check how many entity objects live within this octant
+	if (m_pEntityMngr->GetEntityCount() >= a_nEntities) { return true; }
+
 	return false; //return something for the sake of start up code
 }
 void Octant::AssignIDtoEntity(void)
@@ -83,7 +122,15 @@ void Octant::AssignIDtoEntity(void)
 	//Recursive method
 	//Have to traverse the tree and make sure to tell the entity manager
 	//what octant (space) each object is at
-	m_pEntityMngr->AddDimension(0, m_uID);//example only, take the first entity and tell it its on this space
+	
+	
+	for (int i = 0; i < m_pEntityMngr->GetEntityCount(); i++) {
+		m_pEntityMngr->AddDimension(i, m_uID);
+	}
+
+	for (int c = 0; c < m_uChildren; c++) {
+		m_lChild[c]->AssignIDtoEntity();
+	}
 }
 //-------------------------------------------------------------------------------------------------------------------
 // You can assume the following is fine and does not need changes, you may add onto it but the code is fine as is
